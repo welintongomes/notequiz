@@ -1,5 +1,5 @@
 // // Cria um nome dinâmico para o cache, incluindo um identificador de versão
-// const CACHE_VERSION = 'v2'; // Mude o valor para forçar uma nova versão
+// const CACHE_VERSION = 'v3'; // Mude o valor para forçar uma nova versão
 // const CACHE_NAME = `meu-site-cache-${CACHE_VERSION}`;
 // const urlsToCache = [
 //     './',
