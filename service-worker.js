@@ -1,7 +1,8 @@
 //v-79 Cria um nome dinâmico para o cache, incluindo um identificador de versão
 //cada alteração neste arquivo vai gerar uma nova versão do cache funciona tanto aqui no vscode quando no github
 //entao o site e atualizado quando o usuario fecha o navegador no smartphone, no pc nen precisa fechar
-const CACHE_NAME = `meu-site-cache-${new Date().getTime()}`;
+const CACHE_VERSION = 'v1.0.1'; // Mude esta versão manualmente a cada alteração relevante
+const CACHE_NAME = `meu-site-cache-${CACHE_VERSION}`;
 const urlsToCache = [
     './',
     './index.html',
