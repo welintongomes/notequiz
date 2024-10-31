@@ -102,7 +102,7 @@
 //     );
 // });
 
-const CACHE_NAME = `meu-site-cache-${new Date().getTime()}`;
+const CACHE_VERSION = 'v3';
 const urlsToCache = [
     './',
     './index.html',
