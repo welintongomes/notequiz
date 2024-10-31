@@ -1,5 +1,5 @@
 para conpartilhar
 
-    https://welintongomes.github.io/sliders/
+    https://welintongomes.github.io/notequiz
 
-link: https://welintongomes.github.io/sliders/
+https://welintongomes.github.io/notequiz
