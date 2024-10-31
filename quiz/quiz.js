@@ -785,6 +785,7 @@ async function loadNextQuestion(perguntasFiltradas) {
                     cursor: pointer; 
                     width: 100%;
                     box-sizing: border-box;
+                    margin-bottom: 15px; /* Espaço entre botões */
                 }
                 /* Estilo responsivo para <pre> com rolagem horizontal forçada */
                 pre {
