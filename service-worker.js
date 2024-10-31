@@ -14,8 +14,8 @@
 //     './outros/manifest.json',
 //     './outros/crypto-js.min.js',
 
-// //     // Arquivos na subpasta formatar
-// //     './formatar/formatar.html',
+//     // Arquivos na subpasta formatar
+//     './formatar/formatar.html',
 //     './formatar/formatar.css',
 //     './formatar/formatar.js',
 //     './formatar/f-192x192.png',
