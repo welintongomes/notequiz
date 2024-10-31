@@ -753,8 +753,6 @@ async function loadNextQuestion(perguntasFiltradas) {
     shuffleArray(respostasComIndices);
 
     // Cria um iframe para cada resposta com estilo responsivo
-    // Cria um iframe para cada resposta com estilo responsivo
-    // Cria um iframe para cada resposta com estilo responsivo
     respostasComIndices.forEach(({ resposta, index }) => {
         const respostaIframe = document.createElement("iframe");
         respostaIframe.style.width = "100%";
@@ -780,13 +778,14 @@ async function loadNextQuestion(perguntasFiltradas) {
                     border-radius: 4px;
                     background-color: ${getRandomColor()}; 
                     color: white; 
-                    padding: 10px;
+                    padding: 15px; /* Aumentado de 10px para 15px */
                     border: none; 
                     cursor: pointer; 
                     width: 100%;
                     box-sizing: border-box;
                     margin-bottom: 15px; /* Espaço entre botões */
                 }
+
                 /* Estilo responsivo para <pre> com rolagem horizontal forçada */
                 pre {
                     font-family: monospace;
