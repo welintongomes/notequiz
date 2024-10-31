@@ -130,7 +130,7 @@ function startQuiz() {
         showModalMessage("Selecione uma categoria para começar.", 'alert');
         return;
     }
-    
+
     // Carrega o score da categoria antes de começar
     loadScoreForCategory(currentCategory);
 
@@ -693,26 +693,45 @@ async function loadNextQuestion(perguntasFiltradas) {
 
     // HTML para a pergunta responsiva
     const perguntaHTML = `
-        <html>
-        <head>
-            <style>
-                body { 
-                    //background-color: red; 
-                    font-size: calc(18px + 1vw); /* Tamanho do texto responsivo */
-                    //color: blue; 
-                    padding: 10px; 
-                    margin: 0; 
-                    box-sizing: border-box; 
-                    overflow-wrap: break-word;
-                }
-                p { margin: 0; }
-            </style>
-        </head>
-        <body>
-            <p>${currentQuestion.pergunta}</p>
-        </body>
-        </html>
-    `;
+<html>
+<head>
+    <style>
+        body { 
+            font-size: calc(18px + 1vw); /* Tamanho do texto responsivo */
+            padding: 10px; 
+            margin: 0; 
+            box-sizing: border-box; 
+            overflow-wrap: break-word;
+            display: flex;
+            flex-direction: column; /* Alinha os itens na coluna */
+            gap: 4px; /* Espaçamento entre itens */
+        }
+        p { 
+            margin: 0; 
+            text-align: center; /* Centraliza o texto */
+            display: block; /* Faz o parágrafo ocupar a largura total */
+        }
+        /* Estilo para o conteúdo <pre> */
+        pre {
+            font-family: monospace;
+            font-size: calc(16px + 0.5vw);
+            padding: 8px;
+            border-radius: 4px;
+            text-align: left;
+            overflow-x: auto; /* Rolagem horizontal para conteúdo longo */
+            white-space: pre; /* Impede quebra automática de linha */
+            max-width: 100%; /* Mantém o <pre> dentro da largura do modal */
+            box-sizing: border-box;
+            width: 100%; /* Para garantir que ocupe a largura total */
+        }
+    </style>
+</head>
+<body>
+    <p>${currentQuestion.pergunta}</p>
+</body>
+</html>
+`;
+
 
     // Configura o iframe da pergunta
     const iframePergunta = document.getElementById("iframe-pergunta");
@@ -724,6 +743,7 @@ async function loadNextQuestion(perguntasFiltradas) {
         iframePergunta.style.height = iframePergunta.contentWindow.document.body.scrollHeight + 'px';
     };
 
+
     // Limpa e embaralha as respostas antes de exibir
     const opcoesDiv = document.getElementById("opcoes");
     opcoesDiv.innerHTML = '';
@@ -732,6 +752,8 @@ async function loadNextQuestion(perguntasFiltradas) {
     const respostasComIndices = currentQuestion.respostas.map((resposta, index) => ({ resposta, index }));
     shuffleArray(respostasComIndices);
 
+    // Cria um iframe para cada resposta com estilo responsivo
+    // Cria um iframe para cada resposta com estilo responsivo
     // Cria um iframe para cada resposta com estilo responsivo
     respostasComIndices.forEach(({ resposta, index }) => {
         const respostaIframe = document.createElement("iframe");
@@ -745,24 +767,36 @@ async function loadNextQuestion(perguntasFiltradas) {
             <style>
                 body { 
                     font-size: calc(14px + 0.8vw); /* Tamanho do texto responsivo */
-                    padding: 0; /* Remova o padding */
-                    margin: 0; 
-                    box-sizing: border-box; 
+                    padding: 0;
+                    margin: 0;
+                    box-sizing: border-box;
                     overflow-wrap: break-word;
-                    display: flex; /* Ativa flexbox */
-                    flex-direction: column; /* Organiza botões em coluna */
-                    gap: 4px; /* Espaçamento mínimo entre botões */
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
                 }
                 button {
                     font-size: calc(16px + 1vw);
                     border-radius: 4px;
                     background-color: ${getRandomColor()}; 
                     color: white; 
-                    padding: 10px; /* Ajuste o padding conforme necessário */
+                    padding: 10px;
                     border: none; 
                     cursor: pointer; 
-                    width: 100%; /* Ocupa 100% da largura do iframe */
-                    box-sizing: border-box; 
+                    width: 100%;
+                    box-sizing: border-box;
+                }
+                /* Estilo responsivo para <pre> com rolagem horizontal forçada */
+                pre {
+                    font-family: monospace;
+                    font-size: calc(12px + 0.5vw);
+                    padding: 8px;
+                    border-radius: 4px;
+                    text-align: left;
+                    overflow-x: auto; /* Rolagem horizontal para conteúdo longo */
+                    white-space: pre; /* Impede quebra automática de linha */
+                    max-width: 100%;
+                    box-sizing: border-box;
                 }
             </style>
         </head>
@@ -787,8 +821,8 @@ async function loadNextQuestion(perguntasFiltradas) {
     } else {
         document.getElementById("next-question-button").disabled = false;
     }
-}
 
+}
 //fim funçao iniciar o quiz ------------------------------------------------------------------------------
 
 //funçao de timer de tempo --------------------------------------------------------------------------------
@@ -1089,15 +1123,12 @@ function closeModal() {
 lembre-se sempre que for usar showModalMessage tem que por qual type de modal vai querer usar 
 se nao especificar o padrão neutral será usado*/
 function showModalMessage(message, type) {
-    // Substitui &gt; por < e &lt; por >
-    const formattedMessage = message
-        .replace(/&gt;/g, '<')
-        .replace(/&lt;/g, '>');
-
+    const formattedMessage = message.replace(/&gt;/g, '<').replace(/&lt;/g, '>');
     const modalContent = document.getElementById("modal-content");
     const iframe = document.getElementById("modal-iframe");
-    
-    modalContent.className = "modal-content"; // Limpa classes anteriores
+
+    // Limpa classes anteriores
+    modalContent.className = "modal-content";
 
     // Adiciona a classe conforme o tipo de mensagem
     if (type === 'success') {
@@ -1107,8 +1138,11 @@ function showModalMessage(message, type) {
     } else if (type === 'alert') {
         modalContent.classList.add('alert');
     } else {
-        modalContent.classList.add('neutral'); // Classe padrão para mensagens neutras
+        modalContent.classList.add('neutral');
     }
+
+    // Define altura mínima temporariamente antes de calcular a altura real
+    iframe.style.height = '50px'; // Altura mínima para restaurar antes de redimensionar
 
     // Cria um documento no iframe e escreve a mensagem
     const doc = iframe.contentDocument || iframe.contentWindow.document;
@@ -1119,10 +1153,9 @@ function showModalMessage(message, type) {
             <style>
                 body {
                     margin: 0;
-                    padding: 0px;
+                    padding: 10px;
                     font-family: Arial, sans-serif;
-                    // background-color: white;
-                    
+                    overflow-x: auto; /* Rolagem horizontal para textos longos */
                 }
                 .success { color: green; }
                 .error { color: red; }
@@ -1137,12 +1170,22 @@ function showModalMessage(message, type) {
     `);
     doc.close();
 
-    document.getElementById("modal").style.display = "block"; // Mostra o modal
+    // Ajusta a altura do iframe conforme o conteúdo
+    iframe.onload = () => {
+        const iframeBody = doc.body;
+        const contentHeight = iframeBody.scrollHeight;
+        iframe.style.height = `${Math.max(contentHeight, 50)}px`; // 50px é a altura mínima para mensagens curtas
+    };
+
+    // Exibe o modal
+    document.getElementById("modal").style.display = "block";
 
     return new Promise((resolve) => {
-        resolveModalPromise = resolve; // Armazena a função de resolução da promessa
+        resolveModalPromise = resolve;
     });
 }
+
+
 
 
 // Fechar o modal ao clicar fora dele
@@ -1159,7 +1202,7 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('../service-worker.js')
         .then(function (registration) {
             console.log('quiz Service Worker registrado com sucesso:', registration.scope);
-            
+
             // Verifica se existe um SW novo esperando para ser ativado
             registration.onupdatefound = function () {
                 const newWorker = registration.installing;
