@@ -825,11 +825,35 @@ async function loadNextQuestion(perguntasFiltradas) {
 
 
 }
+//vozes idiomas
+const idiomaSelect = document.getElementById("idioma");
+const vozSelect = document.getElementById("voz");
+let vozesDisponiveis = [];
+
+// Função para carregar e listar as vozes
+function carregarVozes() {
+    vozesDisponiveis = speechSynthesis.getVoices();
+
+    // Limpa o menu de vozes
+    vozSelect.innerHTML = '';
+
+    // Adiciona as vozes no menu suspenso
+    vozesDisponiveis.forEach((voz) => {
+        const option = document.createElement("option");
+        option.value = voz.name;
+        option.textContent = `${voz.name} (${voz.lang})`;
+        vozSelect.appendChild(option);
+    });
+}
+
+// Atualize as vozes quando a lista mudar
+speechSynthesis.onvoiceschanged = carregarVozes;
 
 // Interrompe a leitura quando a página é recarregada ou o usuário sai
 window.addEventListener("beforeunload", () => {
     speechSynthesis.cancel();
 });
+//fim //vozes idiomas
 
 // Função para sintetizar 
 // Função para limpar tags HTML, caracteres especiais (&lt;...&gt;) e conteúdo dentro das tags
@@ -852,14 +876,29 @@ function cleanText(text) {
 // Função para sintetizar a fala
 function speakText(text) {
     if ('speechSynthesis' in window) {
-        speechSynthesis.cancel(); // Interrompe qualquer fala em andamento antes de iniciar uma nova
+        // Interrompe qualquer fala em andamento
+        speechSynthesis.cancel();
+
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'pt-BR';  // Define o idioma para Português do Brasil
+
+        // Define o idioma selecionado
+        const idiomaSelecionado = idiomaSelect.value;
+        utterance.lang = idiomaSelecionado;
+
+        // Define a voz selecionada
+        const nomeVozSelecionada = vozSelect.value;
+        const vozSelecionada = vozesDisponiveis.find(voz => voz.name === nomeVozSelecionada);
+        if (vozSelecionada) {
+            utterance.voice = vozSelecionada;
+        }
+
+        // Fala o texto
         speechSynthesis.speak(utterance);
     } else {
         console.log("API de síntese de voz não é suportada neste navegador.");
     }
 }
+
 
 // Função para ler apenas a pergunta
 function readQuestion() {
