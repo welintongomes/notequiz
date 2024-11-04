@@ -690,6 +690,7 @@ async function loadNextQuestion(perguntasFiltradas) {
     const randomIndex = Math.floor(Math.random() * availableQuestions.length);
     currentQuestion = availableQuestions[randomIndex];
     usedQuestions.push(perguntasDisponiveis.indexOf(currentQuestion));
+    // Exibe a pergunta e as opções na tela
 
     // HTML para a pergunta responsiva
     const perguntaHTML = `
@@ -815,15 +816,60 @@ async function loadNextQuestion(perguntasFiltradas) {
 
         opcoesDiv.appendChild(respostaIframe);
     });
-
+    readQuestion();
     if (tempo) {
         startTimer(tempo);
     } else {
         document.getElementById("next-question-button").disabled = false;
     }
 
+
 }
-//fim funçao iniciar o quiz ------------------------------------------------------------------------------
+
+// Interrompe a leitura quando a página é recarregada ou o usuário sai
+window.addEventListener("beforeunload", () => {
+    speechSynthesis.cancel();
+});
+
+// Função para sintetizar 
+// Função para limpar tags HTML, caracteres especiais (&lt;...&gt;) e conteúdo dentro das tags
+function cleanText(text) {
+    // Cria um elemento temporário para manipular o HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = text;
+
+    // Remove qualquer conteúdo entre &lt; e &gt;
+    tempDiv.innerHTML = tempDiv.innerHTML.replace(/&lt;[^&]*&gt;/g, '');
+
+    // Remove qualquer conteúdo dentro das tags HTML como <h1>texto</h1>
+    tempDiv.innerHTML = tempDiv.innerHTML.replace(/<[^>]*>[^<]*<\/[^>]*>/g, '');
+
+    // Extrai apenas o texto visível do elemento
+    return tempDiv.textContent || tempDiv.innerText || '';
+}
+
+// Função para sintetizar a fala
+// Função para sintetizar a fala
+function speakText(text) {
+    if ('speechSynthesis' in window) {
+        speechSynthesis.cancel(); // Interrompe qualquer fala em andamento antes de iniciar uma nova
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'pt-BR';  // Define o idioma para Português do Brasil
+        speechSynthesis.speak(utterance);
+    } else {
+        console.log("API de síntese de voz não é suportada neste navegador.");
+    }
+}
+
+// Função para ler apenas a pergunta
+function readQuestion() {
+    // Interrompe qualquer leitura em andamento
+    speechSynthesis.cancel();
+    const textoLimpo = cleanText(currentQuestion.pergunta);
+    speakText(textoLimpo);
+}
+
+//fim Função para sintetizar
 
 //funçao de timer de tempo --------------------------------------------------------------------------------
 function startTimer(tempoLimite) {
@@ -957,26 +1003,6 @@ function showConfirmationModal(message, onConfirm, onCancel) {
 
 //fim modal reutilizavel generico
 
-
-function exportDatabase() {
-    const transaction = db.transaction(["questions"], "readonly");
-    const store = transaction.objectStore("questions");
-    const request = store.getAll();
-
-    request.onsuccess = function (event) {
-        const data = event.target.result;
-        const json = JSON.stringify(data);
-        const blob = new Blob([json], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "quiz.json";
-        a.click();
-
-        URL.revokeObjectURL(url);
-    };
-}
 function exportScore() {
     const scoreData = {
         scores: scores, // Supondo que 'scores' seja um objeto que contém os scores por categoria
@@ -1044,7 +1070,30 @@ function toggleDescricao(descricaoId) {
     }
 }
 
-function importDatabase(event) {
+//exportar local
+function exportDatabase() {
+    const transaction = db.transaction(["questions"], "readonly");
+    const store = transaction.objectStore("questions");
+    const request = store.getAll();
+
+    request.onsuccess = function (event) {
+        const data = event.target.result;
+        const json = JSON.stringify(data);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "quiz.json";
+        a.click();
+
+        URL.revokeObjectURL(url);
+    };
+}
+//fim exportar local
+
+//import local
+function importDatabase(event) {//importal local
     const file = event.target.files[0];
     if (!file) return;
 
@@ -1079,9 +1128,82 @@ function importDatabase(event) {
     };
 
     reader.readAsText(file);
-}
+}//fim importar local
 
-// Função para tocar o som de sucesso
+// Função para limpar dados do site e retornar uma Promise
+function clearSiteCache() {
+    return new Promise((resolve, reject) => {
+        if ('caches' in window) {
+            caches.keys().then((cacheNames) => {
+                return Promise.all(
+                    cacheNames.map((cacheName) => {
+                        return caches.delete(cacheName);
+                    })
+                );
+            }).then(() => {
+                console.log("Cache do site limpo com sucesso!");
+                resolve(); // Resolve a Promise
+            }).catch((error) => {
+                console.error("Erro ao limpar o cache do site:", error);
+                reject(error); // Reject a Promise em caso de erro
+            });
+        } else {
+            resolve(); // Resolve caso caches não esteja disponível
+        }
+    });
+}
+//fim funçao para limpar dados do site
+
+//export nuvem
+
+//fim Função para exportar o banco de dados para o Gist
+
+// Função para importar dados do Gist
+// IDs dos Gists públicos
+const IMPORT_GIST_ID = '91b30f2ab4db553ac595d17e69c8a095'; // Substitua pelo ID do seu Gist de importação
+
+// Função para importar dados do Gist público
+function importDatabaseFromGist() {
+    // Limpa o cache do site
+    clearSiteCache().then(() => {
+        fetch(`https://api.github.com/gists/${IMPORT_GIST_ID}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar os dados do Gist');
+                }
+                return response.json();
+            })
+            .then(gistData => {
+                const fileContent = gistData.files["quiz_import.json"].content; // Nome do arquivo no Gist
+                const data = JSON.parse(fileContent);
+
+                const transaction = db.transaction(["questions"], "readwrite");
+                const store = transaction.objectStore("questions");
+
+                // Limpa o banco antes de importar novas perguntas
+                const clearRequest = store.clear();
+                clearRequest.onsuccess = function () {
+                    data.forEach(item => {
+                        store.put(item);
+                    });
+
+                    loadQuestions();
+                    loadCategorias();
+                    alertaConclusao();
+                    showModalMessage("Banco de dados importado com sucesso do Gist!", 'success');
+                };
+            })
+            .catch(error => {
+                alertaTempo();
+                showModalMessage("Erro ao importar o banco de dados do Gist: " + error.message, 'error');
+            });
+    }).catch(error => {
+        alertaTempo();
+        showModalMessage("Erro ao limpar o cache: " + error.message, 'error');
+    });
+}//fim Função para importar dados do Gist
+
+// Função para tocar o som nos modais
 function alertaSucesso() {
     const successSound = document.getElementById("sucesso-sound");
     successSound.play(); // Toca o som de sucesso
@@ -1104,7 +1226,7 @@ let resolveModalPromise;
 function openModal() {
     document.getElementById("modal").style.display = "block";
 }
-
+//função para fechar o modal
 function closeModal() {
     const modal = document.getElementById("modal");
     modal.style.display = "none";
@@ -1118,6 +1240,7 @@ function closeModal() {
         resolveModalPromise = null; // Limpa a referência
     }
 }
+//fim função para fechar o modal
 
 /*cores para o modal padrão neutro
 lembre-se sempre que for usar showModalMessage tem que por qual type de modal vai querer usar 
@@ -1375,5 +1498,3 @@ document.getElementById("toggleButton").addEventListener("click", function () {
         secPerguntas.style.display = "none"; // Esconde a div
     }
 });
-
-

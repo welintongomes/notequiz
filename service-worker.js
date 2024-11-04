@@ -1,7 +1,8 @@
-//v-79 Cria um nome dinâmico para o cache, incluindo um identificador de versão
+// v-79 Cria um nome dinâmico para o cache, incluindo um identificador de versão
 //cada alteração neste arquivo vai gerar uma nova versão do cache funciona tanto aqui no vscode quando no github
 //entao o site e atualizado quando o usuario fecha o navegador no smartphone, no pc nen precisa fechar
-const CACHE_VERSION = 'v1.0.3'; // Mude esta versão manualmente a cada alteração relevante
+// Mude esta versão manualmente a cada alteração relevante
+const CACHE_VERSION = 'v1.0.2'; //subindo e baixando repositorio da nuvem
 const CACHE_NAME = `meu-site-cache-${CACHE_VERSION}`;
 const urlsToCache = [
     './',
@@ -65,37 +66,43 @@ self.addEventListener('activate', (event) => {
 
 // Verifica e atualiza automaticamente os usuários com versões desatualizadas
 self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            // Retorna a resposta do cache, se houver
-            if (cachedResponse) {
-                return cachedResponse;
-            }
+    // Verifica se o método é GET; se não for, ignora o cache
+    if (event.request.method !== 'GET') {
+        return;
+    }
 
-            // Verifica se o esquema da URL é 'http' ou 'https'
-            if (event.request.url.startsWith('http')) {
-                // Se não estiver no cache, faz a requisição de rede
-                return fetch(event.request).then((networkResponse) => {
-                    // Verifica se a resposta pode ser clonada e tem status 200
-                    if (networkResponse && networkResponse.status === 200) {
-                        // Tenta clonar a resposta apenas se possível
-                        const responseClone = networkResponse.clone();
+    const requestUrl = event.request.url;
 
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(event.request, responseClone).catch((error) => {
-                                console.warn('Falha ao salvar no cache:', error);
+    if (requestUrl.includes('gist.githubusercontent.com')) {
+        // Busca diretamente sem usar cache para o Gist
+        event.respondWith(fetch(event.request));
+    } else {
+        event.respondWith(
+            caches.match(event.request).then((cachedResponse) => {
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+
+                if (event.request.url.startsWith('http')) {
+                    return fetch(event.request).then((networkResponse) => {
+                        if (networkResponse && networkResponse.status === 200) {
+                            const responseClone = networkResponse.clone();
+
+                            caches.open(CACHE_NAME).then((cache) => {
+                                cache.put(event.request, responseClone).catch((error) => {
+                                    console.warn('Falha ao salvar no cache:', error);
+                                });
                             });
-                        });
-                    }
-                    return networkResponse;
-                }).catch((error) => {
-                    console.error('Erro ao buscar recurso:', error);
-                    throw error;
-                });
-            }
+                        }
+                        return networkResponse;
+                    }).catch((error) => {
+                        console.error('Erro ao buscar recurso:', error);
+                        throw error;
+                    });
+                }
 
-            // Caso o esquema não seja 'http' ou 'https', retorna a resposta de rede
-            return fetch(event.request);
-        })
-    );
+                return fetch(event.request);
+            })
+        );
+    }
 });

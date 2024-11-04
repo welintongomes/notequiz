@@ -143,10 +143,9 @@
         <div class="respons">
 
             <!-- Botão para selecionar arquivo -->
-            <button accesskey="a" title="ALT+A Importar Arquivo" id="uploadButton" class="btn btn-primary"
-                onclick="document.getElementById('fileInput').click();">Importar Perguntas</button>
-            <button accesskey="d" title="ALT+D Exportar Arquivo" class="btn btn-secondary"
-                onclick="exportDatabase()">Exportar Perguntas</button>
+            <button accesskey="a" title="ALT+A Importar Arquivo" id="uploadButton" class="btn btn-primary"onclick="document.getElementById('fileInput').click();">Importar Localmente</button>
+            <button class="btn btn-secondary"onclick="importDatabaseFromGist()">Importar da Nuvem</button>
+            <button accesskey="d" title="ALT+D Exportar Arquivo" class="btn btn-secondary"onclick="exportDatabase()">Exportar Localmente</button>
             <button class="btn btn-danger" onclick="deleteAllQuestions()">Excluir Todas as Perguntas</button>
         </div>
 
