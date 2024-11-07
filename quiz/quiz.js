@@ -903,10 +903,12 @@ function cleanText(text) {
 
     // Remove qualquer conteúdo dentro das tags HTML como <h1>texto</h1>
     tempDiv.innerHTML = tempDiv.innerHTML.replace(/<[^>]*>[^<]*<\/[^>]*>/g, '');
-
     // Extrai apenas o texto visível do elemento
-    return tempDiv.textContent || tempDiv.innerText || '';
-}
+    const cleanedText = tempDiv.textContent || tempDiv.innerText || '';
+    // Remove a palavra "Descrição:" do texto
+    return cleanedText.replace("Descrição:", "").trim();
+
+}//fim Função para limpar o texto 
 // Função para sintetizar a fala
 function speakText(text, callback) {
     if ('speechSynthesis' in window) {
@@ -925,32 +927,111 @@ function speakText(text, callback) {
 }
 
 // Função para ler a pergunta e as respostas em sequência
+// Função para ler a pergunta e as respostas na ordem dos botões
+// Função para ler a pergunta e as respostas na ordem dos botões
 function readQuestionAndAnswers() {
     const lerPergunta = document.getElementById("lerPerguntaCheckbox").checked;
     const lerRespostas = document.getElementById("lerRespostasCheckbox").checked;
 
     if (lerPergunta) {
-        // Lê a pergunta primeiro, e só depois verifica se deve ler as respostas
+        // Lê a pergunta primeiro
         const textoPergunta = cleanText(currentQuestion.pergunta);
         speakText(textoPergunta, () => {
             if (lerRespostas) {
-                const respostas = currentQuestion.respostas.map(cleanText);
-                readAnswersSequentially(respostas, 0);
+                readAnswersInIframeOrder();
             }
         });
     } else if (lerRespostas) {
-        // Se só ler respostas estiver selecionado
-        const respostas = currentQuestion.respostas.map(cleanText);
-        readAnswersSequentially(respostas, 0);
+        readAnswersInIframeOrder();
     }
 }
 
-// Função para ler as respostas uma por uma
-function readAnswersSequentially(respostas, index) {
-    if (index < respostas.length) {
-        speakText(respostas[index], () => readAnswersSequentially(respostas, index + 1));
+// Função para ler as respostas dentro dos iframes na ordem que aparecem
+// Função para ler a pergunta e as respostas na ordem dos botões
+function readQuestionAndAnswers() {
+    const lerPergunta = document.getElementById("lerPerguntaCheckbox").checked;
+    const lerRespostas = document.getElementById("lerRespostasCheckbox").checked;
+
+    if (lerPergunta) {
+        // Lê a pergunta primeiro
+        const textoPergunta = cleanText(currentQuestion.pergunta);
+        speakText(textoPergunta, () => {
+            if (lerRespostas) {
+                readAnswersInIframeOrder();
+            }
+        });
+    } else if (lerRespostas) {
+        readAnswersInIframeOrder();
     }
 }
+
+// Função para ler as respostas dentro dos iframes na ordem que aparecem
+// Função para ler a pergunta e as respostas na ordem dos botões
+function readQuestionAndAnswers() {
+    const lerPergunta = document.getElementById("lerPerguntaCheckbox").checked;
+    const lerRespostas = document.getElementById("lerRespostasCheckbox").checked;
+
+    if (lerPergunta) {
+        // Lê a pergunta primeiro
+        const textoPergunta = cleanText(currentQuestion.pergunta);
+        speakText(textoPergunta, () => {
+            // Só lê as respostas se a opção estiver marcada
+            if (lerRespostas) {
+                readAnswersInIframeOrder();
+            }
+        });
+    } else if (lerRespostas) {
+        // Se a opção para ler respostas estiver marcada, apenas lê as respostas
+        readAnswersInIframeOrder();
+    }
+}
+
+// Função para ler as respostas dentro dos iframes na ordem que aparecem
+// Função para ler a pergunta e as respostas na ordem dos botões
+function readQuestionAndAnswers() {
+    const lerPergunta = document.getElementById("lerPerguntaCheckbox").checked;
+    const lerRespostas = document.getElementById("lerRespostasCheckbox").checked;
+
+    if (lerPergunta) {
+        // Lê a pergunta primeiro
+        const textoPergunta = cleanText(currentQuestion.pergunta);
+        speakText(textoPergunta, () => {
+            // Só lê as respostas se a opção estiver marcada
+            if (lerRespostas) {
+                readAnswersInIframeOrder();
+            }
+        });
+    } else if (lerRespostas) {
+        // Se a opção para ler respostas estiver marcada, apenas lê as respostas
+        readAnswersInIframeOrder();
+    }
+}
+
+// Função para ler as respostas dentro dos iframes na ordem que aparecem
+function readAnswersInIframeOrder() {
+    const iframes = Array.from(document.querySelectorAll("#opcoes iframe"));
+    const respostas = [];
+
+    // Captura o texto de cada botão de resposta dentro dos iframes
+    iframes.forEach((iframe) => {
+        const button = iframe.contentWindow.document.querySelector("button");
+        if (button) {
+            respostas.push(cleanText(button.textContent));
+        }
+    });
+
+    // Lê cada resposta sequencialmente usando uma função recursiva
+    function lerRespostaSequencialmente(index) {
+        if (index < respostas.length) {
+            speakText(respostas[index], () => {
+                lerRespostaSequencialmente(index + 1); // Chama a próxima leitura após a atual terminar
+            });
+        }
+    }
+
+    lerRespostaSequencialmente(0); // Inicia a leitura pela primeira resposta
+}
+
 
 // // Função para ler apenas a pergunta
 // function readQuestion() {
