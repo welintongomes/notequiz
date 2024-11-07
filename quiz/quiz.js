@@ -753,6 +753,7 @@ async function loadNextQuestion(perguntasFiltradas) {
     const respostasComIndices = currentQuestion.respostas.map((resposta, index) => ({ resposta, index }));
     shuffleArray(respostasComIndices);
 
+ 
     // Cria um iframe para cada resposta com estilo responsivo
     respostasComIndices.forEach(({ resposta, index }) => {
         const respostaIframe = document.createElement("iframe");
@@ -816,7 +817,8 @@ async function loadNextQuestion(perguntasFiltradas) {
 
         opcoesDiv.appendChild(respostaIframe);
     });
-    readQuestion();
+    // Chame as funções para exibir a pergunta e iniciar a leitura
+    readQuestionAndAnswers();
     if (tempo) {
         startTimer(tempo);
     } else {
@@ -826,39 +828,73 @@ async function loadNextQuestion(perguntasFiltradas) {
 
 }
 //vozes idiomas
+// Seletores dos elementos dropdown
 const idiomaSelect = document.getElementById("idioma");
 const vozSelect = document.getElementById("voz");
 let vozesDisponiveis = [];
 
-// Função para carregar e listar as vozes
+// Função para carregar e listar todas as vozes no menu de vozes
 function carregarVozes() {
     vozesDisponiveis = speechSynthesis.getVoices();
 
+    // Verifica se as vozes foram carregadas; caso contrário, tenta novamente
+    if (vozesDisponiveis.length === 0) {
+        setTimeout(carregarVozes, 100);
+        return;
+    }
+
+    // Limpa o menu de idiomas
+    idiomaSelect.innerHTML = '';
+
+    // Filtra idiomas únicos com base na primeira parte do código, ex.: "en", "es"
+    const idiomasUnicos = [...new Set(vozesDisponiveis.map(voz => voz.lang.split("-")[0]))];
+    
+    // Adiciona opções ao menu de idiomas
+    idiomasUnicos.forEach(idioma => {
+        const option = document.createElement("option");
+        option.value = idioma;
+        option.textContent = idioma;
+        idiomaSelect.appendChild(option);
+    });
+
+    // Exibe todas as vozes inicialmente
+    atualizarVozes();
+}
+
+// Função para atualizar as vozes com base no idioma selecionado
+function atualizarVozes() {
+    const idiomaSelecionado = idiomaSelect.value; // Exemplo: "en" para inglês
+    
     // Limpa o menu de vozes
     vozSelect.innerHTML = '';
 
-    // Adiciona as vozes no menu suspenso
-    vozesDisponiveis.forEach((voz) => {
-        const option = document.createElement("option");
-        option.value = voz.name;
-        option.textContent = `${voz.name} (${voz.lang})`;
-        vozSelect.appendChild(option);
-    });
+    // Filtra e adiciona as vozes no dropdown de acordo com o idioma selecionado
+    vozesDisponiveis
+        .filter(voz => voz.lang.startsWith(idiomaSelecionado)) // Mostra variantes do idioma selecionado
+        .forEach((voz) => {
+            const option = document.createElement("option");
+            option.value = voz.name;
+            option.textContent = `${voz.name} (${voz.lang})`;
+            vozSelect.appendChild(option);
+        });
 }
 
-// Atualize as vozes quando a lista mudar
+// Atualiza as vozes quando a lista mudar
 speechSynthesis.onvoiceschanged = carregarVozes;
 
-// Interrompe a leitura quando a página é recarregada ou o usuário sai
-window.addEventListener("beforeunload", () => {
-    speechSynthesis.cancel();
-});
+// Chama `atualizarVozes` sempre que o idioma é alterado
+idiomaSelect.addEventListener("change", atualizarVozes);
+
+// Carrega todas as vozes no início
+carregarVozes();
+
 //fim //vozes idiomas
 
 // Função para sintetizar 
 // Função para limpar tags HTML, caracteres especiais (&lt;...&gt;) e conteúdo dentro das tags
 function cleanText(text) {
     // Cria um elemento temporário para manipular o HTML
+    //funçao exelente que pega o conteudo para poder manipular antes de ler
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = text;
 
@@ -871,42 +907,72 @@ function cleanText(text) {
     // Extrai apenas o texto visível do elemento
     return tempDiv.textContent || tempDiv.innerText || '';
 }
-
 // Função para sintetizar a fala
-// Função para sintetizar a fala
-function speakText(text) {
+function speakText(text, callback) {
     if ('speechSynthesis' in window) {
-        // Interrompe qualquer fala em andamento
         speechSynthesis.cancel();
-
         const utterance = new SpeechSynthesisUtterance(text);
 
-        // Define o idioma selecionado
-        const idiomaSelecionado = idiomaSelect.value;
-        utterance.lang = idiomaSelecionado;
+        utterance.lang = idiomaSelect.value;
+        const vozSelecionada = vozesDisponiveis.find(voz => voz.name === vozSelect.value);
+        if (vozSelecionada) utterance.voice = vozSelecionada;
 
-        // Define a voz selecionada
-        const nomeVozSelecionada = vozSelect.value;
-        const vozSelecionada = vozesDisponiveis.find(voz => voz.name === nomeVozSelecionada);
-        if (vozSelecionada) {
-            utterance.voice = vozSelecionada;
-        }
-
-        // Fala o texto
+        utterance.onend = callback; // Chama a função de callback quando a fala termina
         speechSynthesis.speak(utterance);
     } else {
         console.log("API de síntese de voz não é suportada neste navegador.");
     }
 }
 
+// Função para ler a pergunta e as respostas em sequência
+function readQuestionAndAnswers() {
+    const lerPergunta = document.getElementById("lerPerguntaCheckbox").checked;
+    const lerRespostas = document.getElementById("lerRespostasCheckbox").checked;
 
-// Função para ler apenas a pergunta
-function readQuestion() {
-    // Interrompe qualquer leitura em andamento
-    speechSynthesis.cancel();
-    const textoLimpo = cleanText(currentQuestion.pergunta);
-    speakText(textoLimpo);
+    if (lerPergunta) {
+        // Lê a pergunta primeiro, e só depois verifica se deve ler as respostas
+        const textoPergunta = cleanText(currentQuestion.pergunta);
+        speakText(textoPergunta, () => {
+            if (lerRespostas) {
+                const respostas = currentQuestion.respostas.map(cleanText);
+                readAnswersSequentially(respostas, 0);
+            }
+        });
+    } else if (lerRespostas) {
+        // Se só ler respostas estiver selecionado
+        const respostas = currentQuestion.respostas.map(cleanText);
+        readAnswersSequentially(respostas, 0);
+    }
 }
+
+// Função para ler as respostas uma por uma
+function readAnswersSequentially(respostas, index) {
+    if (index < respostas.length) {
+        speakText(respostas[index], () => readAnswersSequentially(respostas, index + 1));
+    }
+}
+
+// // Função para ler apenas a pergunta
+// function readQuestion() {
+//     // Interrompe qualquer leitura em andamento
+//     speechSynthesis.cancel();
+//     const textoLimpo = cleanText(currentQuestion.pergunta);
+//     speakText(textoLimpo);
+
+//     // Inicia a leitura das respostas após um pequeno atraso
+//     setTimeout(readAnswers, 1000); // 1 segundo de atraso entre a leitura da pergunta e das respostas
+// }//fim Função para ler apenas a pergunta
+
+// // Função para ler todas as respostas em sequência
+// function readAnswers() {
+//     const respostas = currentQuestion.respostas.map(cleanText); // Limpa o texto de cada resposta
+
+//     respostas.forEach((resposta, index) => {
+//         setTimeout(() => {
+//             speakText(resposta);
+//         }, index * 2000); // Atraso de 2 segundos entre cada resposta para evitar sobreposição
+//     });
+// }
 
 //fim Função para sintetizar
 
@@ -924,24 +990,32 @@ function startTimer(tempoLimite) {
             document.getElementById("timer").textContent = "Tempo esgotado!";
             alertaTempo();
             await showModalMessage("Tempo esgotado!", 'error', 'error'); // Aguarda o fechamento do modal
-            handleTimeOut(); // Chama a função após o modal ser fechado
+            console.log("Tempo esgotado! Chamada para handleTimeOut...");
+            handleTimeOut(); // Certifique-se de que esta função é chamada após o modal ser fechado
         }
     }, 1000);
 }
 
 function handleTimeOut() {
-    // Penalidades por tempo esgotado
     const modoJogo = document.getElementById("modo-jogo").value;
-    switch (modoJogo) {
-        case "hard":
-            scores[currentCategory]--; // Perde 1 ponto na categoria atual
-            break;
-        case "impossivel":
-            scores[currentCategory] -= 2; // Perde 2 pontos na categoria atual
-            break;
+    console.log(`Modo de jogo: ${modoJogo}`);
+    console.log(`Score antes da penalidade: ${scores[currentCategory]}`);
+
+    // Aplica penalidade de acordo com o modo de jogo numérico
+    if (modoJogo === "2") { // Difícil
+        scores[currentCategory] -= 1;
+        console.log("Penalidade aplicada: -1 ponto (Difícil)");
+    } else if (modoJogo === "3") { // Impossível
+        scores[currentCategory] -= 2;
+        console.log("Penalidade aplicada: -2 pontos (Impossível)");
+    } else {
+        console.warn(`Modo de jogo não aplica penalidade: ${modoJogo}`);
     }
+    // Atualiza o score global e exibe o valor atualizado na interface
     updateGlobalScore(); // Atualiza o score global após penalidade por tempo
     document.getElementById("score").textContent = scores[currentCategory];
+    console.log(`Score atualizado após penalidade: ${scores[currentCategory]}`);
+    // Salva o score e carrega a próxima pergunta
     saveScore(); // Salva o score
     loadNextQuestion(questions.filter(q => q.categoria === currentCategory)); // Carrega a próxima pergunta
 }
@@ -1274,17 +1348,39 @@ function closeModal() {
     const modalContent = document.getElementById("modal-content");
     modalContent.className = "modal-content"; // Reseta as classes
 
+    // Interrompe a leitura de voz ao fechar o modal
+    speechSynthesis.cancel();
+
     if (resolveModalPromise) {
         resolveModalPromise(); // Resolve a promessa quando o modal é fechado
         resolveModalPromise = null; // Limpa a referência
     }
 }
-//fim função para fechar o modal
 
+//fim função para fechar o modal
+// Função para ler o conteúdo do modal
+function readModalContent() {
+    // Interrompe qualquer leitura em andamento
+    speechSynthesis.cancel();
+
+    // Obtém o conteúdo do modal e limpa o texto
+    const modalIframe = document.getElementById("modal-iframe");
+    const modalDoc = modalIframe.contentDocument || modalIframe.contentWindow.document;
+    const modalText = modalDoc.body.innerHTML;
+    const textoLimpo = cleanText(modalText);
+
+    // Lê o texto limpo do modal
+    speakText(textoLimpo);
+}
+
+//fim função para leitura do modal
 /*cores para o modal padrão neutro
 lembre-se sempre que for usar showModalMessage tem que por qual type de modal vai querer usar 
 se nao especificar o padrão neutral será usado*/
 function showModalMessage(message, type) {
+    speechSynthesis.cancel();
+
+    const lerModal = document.getElementById("lerModalCheckbox").checked;
     const formattedMessage = message.replace(/&gt;/g, '<').replace(/&lt;/g, '>');
     const modalContent = document.getElementById("modal-content");
     const iframe = document.getElementById("modal-iframe");
@@ -1337,8 +1433,13 @@ function showModalMessage(message, type) {
         const iframeBody = doc.body;
         const contentHeight = iframeBody.scrollHeight;
         iframe.style.height = `${Math.max(contentHeight, 50)}px`; // 50px é a altura mínima para mensagens curtas
-    };
-
+        // Espera o carregamento completo antes de iniciar a leitura do conteúdo do modal
+        if(lerModal){
+        setTimeout(() => {
+            const cleanModalText = cleanText(formattedMessage);
+            speakText(cleanModalText);
+        }, 100); // Adiciona um pequeno atraso para garantir consistência
+    };}
     // Exibe o modal
     document.getElementById("modal").style.display = "block";
 
@@ -1357,6 +1458,7 @@ window.onclick = function (event) {
         closeModal();
     }
 };
+
 
 //service worker para funcionar offline otimizado para atualizar automaticamente com timestamp
 // Registra o service worker
